@@ -33,6 +33,7 @@ Some of the many limitiations include:
 import imp
 import sys
 import types
+import marshal
 
 
 def xreload(mod):
@@ -88,7 +89,12 @@ def xreload(mod):
     tmpns = modns.copy()
     modns.clear()
     modns["__name__"] = tmpns["__name__"]
-    exec(code, modns)
+    try:
+        exec(code, modns)
+    except Exception, msg:
+        _restore_old_module(tmpns, modns)
+        return mod
+
     # Now we get to the hard part
     oldnames = set(tmpns)
     newnames = set(modns)
@@ -120,7 +126,7 @@ def _update(oldobj, newobj):
     if hasattr(newobj, "__reload_update__"):
         # Provide a hook for updating
         return newobj.__reload_update__(oldobj)
-    if isinstance(newobj, types.ClassType):
+    if isinstance(newobj, types.ClassType) or hasattr(newobj, '__bases__'):
         return _update_class(oldobj, newobj)
     if isinstance(newobj, types.FunctionType):
         return _update_function(oldobj, newobj)
@@ -188,3 +194,9 @@ def _update_staticmethod(oldsm, newsm):
     # object except None will do.
     _update(oldsm.__get__(0), newsm.__get__(0))
     return newsm
+
+
+def _restore_old_module(old_ns, new_ns):
+    """Restore the module to its previous state"""
+    for _name, _value in old_ns.iteritems():
+        new_ns[_name] = _value

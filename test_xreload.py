@@ -1,51 +1,131 @@
 """Doctests for module reloading.
 
->>> from xreload import xreload
->>> from test.test_xreload import make_mod
->>> make_mod()
+>>> import xreload
+>>> import test_xreload
+>>>
+>>> test_xreload.make_mod_x()
 >>> import x
 >>> C = x.C
->>> Cfoo = C.foo
->>> Cbar = C.bar
->>> Cstomp = C.stomp
->>> b = C()
->>> bfoo = b.foo
->>> b.foo()
+>>> C_foo = C.foo
+>>> C_bar = C.bar
+>>> C_stomp = C.stomp
+>>> C_instance = C()
+>>> C_instance_foo = C_instance.foo
+>>>
+>>> C_foo(C_instance)
 42
->>> bfoo()
-42
->>> Cfoo(b)
-42
->>> Cbar()
+>>> C_bar()
 42 42
->>> Cstomp()
+>>> C_stomp()
 42 42 42
->>> make_mod(repl="42", subst="24")
->>> xreload(x)
+>>> C_instance.foo()
+42
+>>> C_instance_foo()
+42
+>>>
+>>> test_xreload.make_mod_x(repl="42", subst="24")
+>>> xreload.xreload(x)
 <module 'x' (built-in)>
->>> b.foo()
+>>>
+>>> C_foo(C_instance)
 24
->>> bfoo()
-24
->>> Cfoo(b)
-24
->>> Cbar()
+>>> C_bar()
 24 24
->>> Cstomp()
+>>> C_stomp()
 24 24 24
+>>> C_instance.foo()
+24
+>>> C_instance_foo()
+24
+>>>
+>>>
+>>> test_xreload.make_mod_y()
+>>> import y
+>>> D = y.D
+>>> D_foo = D.foo
+>>> D_bar = D.bar
+>>> D_stomp = D.stomp
+>>> D_instance = D()
+>>> D_instance_foo = D_instance.foo
+>>>
+>>> D_foo(D_instance)
+42
+>>> D_bar()
+42 42
+>>> D_stomp()
+42 42 42
+>>> D_instance.foo()
+42
+>>> D_instance_foo()
+42
+>>>
+>>> test_xreload.make_mod_y(repl="42", subst="24")
+>>> xreload.xreload(y)
+<module 'y' (built-in)>
+>>>
+>>> D_foo(D_instance)
+24
+>>> D_bar()
+24 24
+>>> D_stomp()
+24 24 24
+>>> D_instance.foo()
+24
+>>> D_instance_foo()
+24
+>>> print y.g_except
+1
+>>>
+>>> make_mod_y_except()
+>>> xreload.xreload(y)
+<module 'y' (built-in)>
+>>> print y.g_except
+1
 
 """
 
-SAMPLE_CODE = """
+SAMPLE_CODE_X = """
 class C:
     def foo(self):
-        print(42)
+        print 42
     @classmethod
     def bar(cls):
-        print(42, 42)
+        print 42, 42
     @staticmethod
     def stomp():
-        print (42, 42, 42)
+        print 42, 42, 42
+"""
+
+SAMPLE_CODE_Y = """
+class D(object):
+    def foo(self):
+        print 42
+    @classmethod
+    def bar(cls):
+        print 42, 42
+    @staticmethod
+    def stomp():
+        print 42, 42, 42
+
+g_except = 1
+
+
+"""
+
+SAMPLE_CODE_Y_EXCEPTION = """
+class D(object):
+    def foo(self):
+        print 42
+    @classmethod
+    def bar(cls):
+        print 42, 42
+    @staticmethod
+    def stomp():
+        print 42, 42, 42
+
+g_except = e
+
+
 """
 
 import os
@@ -77,13 +157,43 @@ def tearDown(unused=None):
         tempdir = None
         
 
-def make_mod(name="x", repl=None, subst=None):
+def make_mod_x(name="x", repl=None, subst=None):
     if not tempdir:
         setUp()
         assert tempdir
     fn = os.path.join(tempdir, name + ".py")
     f = open(fn, "w")
-    sample = SAMPLE_CODE
+    sample = SAMPLE_CODE_X
+    if repl is not None and subst is not None:
+        sample = sample.replace(repl, subst)
+    try:
+        f.write(sample)
+    finally:
+        f.close()
+
+
+def make_mod_y(name="y", repl=None, subst=None):
+    if not tempdir:
+        setUp()
+        assert tempdir
+    fn = os.path.join(tempdir, name + ".py")
+    f = open(fn, "w")
+    sample = SAMPLE_CODE_Y
+    if repl is not None and subst is not None:
+        sample = sample.replace(repl, subst)
+    try:
+        f.write(sample)
+    finally:
+        f.close()
+
+
+def make_mod_y_except(name="y", repl=None, subst=None):
+    if not tempdir:
+        setUp()
+        assert tempdir
+    fn = os.path.join(tempdir, name + ".py")
+    f = open(fn, "w")
+    sample = SAMPLE_CODE_Y_EXCEPTION
     if repl is not None and subst is not None:
         sample = sample.replace(repl, subst)
     try:
