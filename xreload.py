@@ -76,6 +76,10 @@ def xreload(mod):
             source = stream.read()
             code = compile(source, filename, "exec")
         else:
+            # Skip magic bytes and create time bytes, and load Code Object
+            magic = imp.get_magic()
+            create_time_bytes = 4
+            stream.read(len(magic)+create_time_bytes)
             code = marshal.load(stream)
     finally:
         if stream:
