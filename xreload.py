@@ -104,12 +104,12 @@ def xreload(mod):
     newnames = set(modns)
     # Update attributes in place
     for name in oldnames & newnames:
-        modns[name] = _update(tmpns[name], modns[name])
+        modns[name] = _update(tmpns[name], modns[name], ProcessGlobal, name)
     # Done!
     return mod
 
 
-def _update(oldobj, newobj):
+def _update(oldobj, newobj, process_global=None, name=None):
     """Update oldobj, if possible in place, with newobj.
 
     If oldobj is immutable, this simply returns newobj.
@@ -124,7 +124,7 @@ def _update(oldobj, newobj):
     if oldobj is newobj:
         # Probably something imported
         return newobj
-    if type(oldobj) is not type(newobj):
+    if type(oldobj) is not type(newobj) and not process_global:
         # Cop-out: if the type changed, give up
         return newobj
     if hasattr(newobj, "__reload_update__"):
@@ -140,6 +140,9 @@ def _update(oldobj, newobj):
         return _update_classmethod(oldobj, newobj)
     if isinstance(newobj, staticmethod):
         return _update_staticmethod(oldobj, newobj)
+    if process_global:
+        return process_global(oldobj, newobj, name)
+
     # Not something we recognize, just give up
     return newobj
 
@@ -174,7 +177,7 @@ def _update_class(oldclass, newclass):
     for name in oldnames - newnames:
         delattr(oldclass, name)
     for name in oldnames & newnames - {"__dict__", "__doc__"}:
-        setattr(oldclass, name,  _update(olddict[name], newdict[name]))
+        setattr(oldclass, name, _update(olddict[name], newdict[name]))
     return oldclass
 
 
@@ -204,3 +207,16 @@ def _restore_old_module(old_ns, new_ns):
     """Restore the module to its previous state"""
     for _name, _value in old_ns.iteritems():
         new_ns[_name] = _value
+
+def ProcessGlobal(old_value, new_value, name):
+
+    if name.startswith("__"):
+        return new_value
+
+    if name.isupper():
+        return new_value
+
+    if isinstance(old_value, types.ModuleType):
+        return new_value
+
+    return old_value
