@@ -211,7 +211,7 @@ def _restore_old_module(old_ns, new_ns):
 def ProcessGlobal(old_value, new_value, name):
     """if it's built-in object or all-upper-case constant or imported module, just replace it.
         But we should keep the those global objects unchanged since they may be our cache values in memory,
-        and should not be replaced. 
+        and should not be replaced.
     """
 
     if name.startswith("__"):
