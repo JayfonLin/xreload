@@ -46,7 +46,6 @@ def xreload(modname):
       The (updated) input object itself.
     """
     # Get the module name, e.g. 'foo.bar.whatever'
-    #modname = mod.__name__
     mod = sys.modules.get(modname)
     if not mod:
         return
