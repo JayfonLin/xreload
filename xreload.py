@@ -36,7 +36,7 @@ import types
 import marshal
 
 
-def xreload(mod):
+def xreload(modname):
     """Reload a module in place, updating classes, methods and functions.
 
     Args:
@@ -46,7 +46,11 @@ def xreload(mod):
       The (updated) input object itself.
     """
     # Get the module name, e.g. 'foo.bar.whatever'
-    modname = mod.__name__
+    #modname = mod.__name__
+    mod = sys.modules.get(modname)
+    if not mod:
+        return
+
     # Get the module namespace (dict) early; this is part of the type check
     modns = mod.__dict__
     # Parse it into package name and module name, e.g. 'foo.bar' and 'whatever'

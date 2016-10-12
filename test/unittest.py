@@ -37,7 +37,7 @@ def Foo():
     assert module.Foo() == 13579
 
     ReplaceScripts(file_name, new_file)
-    xreload.xreload(module)
+    xreload.xreload(module.__name__)
     assert module.Foo() == 97531
 
 def test_new_style_class():
@@ -59,6 +59,9 @@ class Operate(object):
     @staticmethod
     def multiply(x, y):
         return x * y
+
+    def to_bo_delete_method(self):
+        pass
     """
 
     new_file = \
@@ -87,7 +90,6 @@ class Operate(object):
     ReplaceScripts(file_name, origin_file)
     import scripts.new_style_class
     module = scripts.new_style_class
-    xreload.xreload(module)
 
     x = 17
     y = 3
@@ -96,13 +98,14 @@ class Operate(object):
     assert op.add() == 21
     assert module.Operate.minus(x, y) == 14
     assert module.Operate.multiply(x, y) == 51
+    assert hasattr(module.Operate, "to_bo_delete_method")
 
     Operate_instance_add = op.add
     Operate_minus = module.Operate.minus
     Operate_multiply = module.Operate.multiply
 
     ReplaceScripts(file_name, new_file)
-    xreload.xreload(module)
+    xreload.xreload(module.__name__)
 
     new_op = module.Operate(x, y)
 
@@ -112,6 +115,7 @@ class Operate(object):
     assert Operate_minus(x, y) == -14
     assert Operate_multiply(x, y) == 102
     assert op.divide() == 5
+    assert not hasattr(module.Operate, "to_bo_delete_method")
 
 
 def test_classic_class():
@@ -175,7 +179,7 @@ class Operate:
     Operate_multiply = module.Operate.multiply
 
     ReplaceScripts(file_name, new_file)
-    xreload.xreload(module)
+    xreload.xreload(module.__name__)
 
     new_op = module.Operate(x, y)
 
@@ -233,14 +237,32 @@ CONSTANT_VALUE = 31415926  # compare to its origin value which is a different ty
     module.GetManagerInstance()
 
     assert module.g_user_table != {}
-    assert module.manager != None
+    assert module.manager is not None
     assert module.CONSTANT_VALUE == "I don't know"
 
     ReplaceScripts(file_name, new_file)
-    xreload.xreload(module)
+    xreload.xreload(module.__name__)
 
     assert module.g_user_table != {}
-    assert module.manager != None
+    assert module.manager is not None
     assert module.CONSTANT_VALUE == 31415926
+
+def test_pyc():
+    import os
+    import py_compile
+
+    import scripts.new_style_class
+    path = "scripts/new_style_class.py"
+    py_compile.compile(path)
+    os.remove(path)
+    assert not os.path.exists(path)
+    pyc_path = path+'c'
+    assert os.path.exists(pyc_path)
+
+    xreload.xreload("scripts.new_style_class")
+    op = scripts.new_style_class.Operate(1, 1)
+
+
+
 
 
