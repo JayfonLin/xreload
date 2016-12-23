@@ -1,0 +1,4 @@
+Commands to start up test runner:
+
+pytest -v unittest.py
+pytest -v --pdb unittest.py
