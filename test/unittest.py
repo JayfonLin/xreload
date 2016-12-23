@@ -6,6 +6,18 @@ Created on 2016-09-20
 
 import xreload
 
+def setup_module(module):
+    import os
+    make_dir_cmd = "mkdir scripts"
+    os.system(make_dir_cmd)
+
+    touch_initpy_cmd = "touch scripts/__init__.py"
+    os.system(touch_initpy_cmd)
+
+def teardown_module(module):
+    import os
+    cmd = "rm -rf scripts"
+    os.system(cmd)
 
 def ReplaceScripts(file_name, content):
     f = open(file_name, "w")
@@ -261,6 +273,92 @@ def test_pyc():
 
     xreload.xreload("scripts.new_style_class")
     op = scripts.new_style_class.Operate(1, 1)
+
+
+def test_derived_class():
+
+    origin_file = """
+class A(object):
+    def __init__(self):
+        pass
+
+class B(A):
+    def __init__(self):
+        super(B, self).__init__()
+
+
+    """
+
+    new_file = """
+class A(object):
+    def __init__(self):
+        pass
+
+class B(A):
+    def __init__(self):
+        super(B, self).__init__()
+
+class C(B):
+    def __init__(self):
+        super(C, self).__init__()
+
+
+def Foo():
+    a = A()
+    b = B()
+    c = C()
+
+    """
+
+    other_file = """
+
+class E(object):
+    def __init__(self):
+        super(E, self).__init__()
+
+    """
+
+    other_new_file = """
+import base_derived_classes
+
+class E(object):
+
+    def __init__(self):
+        super(E, self).__init__()
+
+class D(base_derived_classes.B, E):
+    def __init__(self):
+        super(D, self).__init__()
+
+def Foo():
+    b = base_derived_classes.B()
+    d = D()
+    """
+
+
+    file_name = "scripts/base_derived_classes.py"
+    ReplaceScripts(file_name, origin_file)
+    import scripts.base_derived_classes
+
+    other_name = "scripts/other.py"
+    ReplaceScripts(other_name, other_file)
+    import scripts.other
+
+    module = scripts.base_derived_classes
+    ReplaceScripts(file_name, new_file)
+    ReplaceScripts(other_name, other_new_file)
+
+    xreload.xreload(module.__name__)
+    xreload.xreload(scripts.other.__name__)
+
+    module.Foo()
+    scripts.other.Foo()
+
+
+
+
+
+
 
 
 

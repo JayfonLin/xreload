@@ -108,6 +108,8 @@ def xreload(modname):
     # Update attributes in place
     for name in oldnames & newnames:
         modns[name] = _update(tmpns[name], modns[name], ProcessGlobal, name)
+
+    ProcessSubClasses(tmpns, modns, mod)
     # Done!
     return mod
 
@@ -124,6 +126,7 @@ def _update(oldobj, newobj, process_global=None, name=None):
     Returns:
       either oldobj, updated in place, or newobj.
     """
+        
     if oldobj is newobj:
         # Probably something imported
         return newobj
@@ -145,6 +148,8 @@ def _update(oldobj, newobj, process_global=None, name=None):
         return _update_staticmethod(oldobj, newobj)
     if process_global:
         return process_global(oldobj, newobj, name)
+
+
 
     # Not something we recognize, just give up
     return newobj
@@ -227,3 +232,30 @@ def ProcessGlobal(old_value, new_value, name):
         return new_value
 
     return old_value
+
+
+def ProcessSubClasses(old_ns, new_ns, mod):
+
+    old_names = set(old_ns)
+    new_names = set(new_ns)
+
+    for _name in new_names - old_names:
+
+        _obj = new_ns[_name]
+        if not hasattr(_obj, '__bases__'):
+            continue
+
+        _new_bases = []
+        for _base in _obj.__bases__:
+
+            # If base class is in the same module with its subclass and is not a new class, 
+            # replace it with the old one in subclass.__bases__
+            if _base.__module__ == mod.__name__ and old_ns.get(_base.__name__):
+                _new_bases.append(old_ns[_base.__name__])
+
+            else:
+                _new_bases.append(_base)
+
+        _obj.__bases__ = tuple(_new_bases)
+
+
