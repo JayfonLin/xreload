@@ -14,4 +14,4 @@ Some of the many limitiations include:
   the old foo.bar object rather than failing
 - Frozen modules and modules loaded from zip files aren't handled
   correctly
-- Classes involving __slots__ are not handled correctly
+- Classes involving __slots__ are not handled correctly. Only support slots class to slots class non-data members change.

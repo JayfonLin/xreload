@@ -5,6 +5,9 @@ Created on 2016-09-20
 """
 
 import xreload
+import pytest
+import types
+
 
 def setup_module(module):
     import os
@@ -275,7 +278,7 @@ def test_pyc():
     op = scripts.new_style_class.Operate(1, 1)
 
 
-def test_derived_class():
+def skip_test_derived_class():
 
     origin_file = """
 class A(object):
@@ -354,9 +357,119 @@ def Foo():
     module.Foo()
     scripts.other.Foo()
 
+def test_after_slot_class():
+    origin_file = """
+class A(object):
+    def __init__(self, member):
+        self.m_member = member
+
+    def Foo(self):
+        pass
+    """
+
+    new_file = """
+class A(object):
+    __slots__ = ["m_member", "Foo"]
+    def __init__(self, member):
+        self.m_member = member
+
+    def Foo(self):
+        pass
+    """
+
+    file_name = "scripts/after_slot_class.py"
+    ReplaceScripts(file_name, origin_file)
+    import scripts.after_slot_class
+
+    ReplaceScripts(file_name, new_file)
+
+    with pytest.raises(Exception, match=r'__slots__.*before.*after modified'):
+        xreload.xreload(scripts.after_slot_class.__name__)
+
+def test_before_slot_class():
+    origin_file = """
+class A(object):
+    __slots__ = ["m_member", "Foo"]
+    def __init__(self, member):
+        self.m_member = member
+
+    def Foo(self):
+        pass
+    """
+
+    new_file = """
+class A(object):
+    def __init__(self, member):
+        self.m_member = member
+
+    def Foo(self):
+        pass
+    """
+    
+
+    file_name = "scripts/before_slot_class.py"
+    ReplaceScripts(file_name, origin_file)
+    import scripts.before_slot_class
+
+    ReplaceScripts(file_name, new_file)
+
+    with pytest.raises(Exception, match=r'__slots__.*before.*after modified'):
+        xreload.xreload(scripts.before_slot_class.__name__)
 
 
+def test_slots_update_class():
+    origin_file = """
+class A(object):
+    __slots__ = ["m_member", "Foo", "DeleteMethod"]
 
+    def __init__(self):
+        self.m_member = 1
+
+    def Foo(self):
+        return 'before'
+
+    def DeleteMethod(self):
+        pass
+    """
+
+    new_file = """
+class A(object):
+    __slots__ = ["m_member", "Foo", "Bar"]
+
+    def __init__(self):
+        self.m_member = 2
+
+    def Foo(self):
+        return 'after'
+
+    @classmethod
+    def Bar(cls):
+        pass
+    """
+
+    file_name = "scripts/slots_update_class.py"
+    ReplaceScripts(file_name, origin_file)
+    import scripts.slots_update_class
+    module = scripts.slots_update_class
+
+    assert hasattr(module.A, 'DeleteMethod')
+    assert isinstance(module.A.DeleteMethod, types.MethodType)
+    assert hasattr(module.A, 'Foo')
+    assert hasattr(module.A, 'm_member')
+
+    ReplaceScripts(file_name, new_file)
+    xreload.xreload(module.__name__)
+
+    assert hasattr(module.A, 'Foo')
+    assert isinstance(module.A.Foo, types.MethodType)
+    a = module.A()
+    assert a.m_member == 2
+    assert a.Foo() == 'after'
+
+    assert hasattr(module.A, 'Bar') 
+    assert isinstance(module.A.__dict__['Bar'], classmethod)
+    assert not hasattr(module.A, 'DeleteMethod')
+    assert hasattr(module.A, 'm_member')
 
 
 
