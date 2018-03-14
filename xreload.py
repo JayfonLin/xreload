@@ -184,20 +184,26 @@ def _update_class(oldclass, newclass):
 
     if '__slots__' in oldnames or '__slots__' in newnames:
         if '__slots__' in oldnames and '__slots__' in newnames:
-            setattr(oldclass, '__slots__', newdict['__slots__'])
 
             for name in newnames - oldnames:
                 if isinstance(newdict[name], (types.MethodType, types.FunctionType, classmethod, staticmethod)):
                     setattr(oldclass, name, newdict[name])
 
+                elif name in newdict['__slots__']:
+                    raise exceptions.Exception, "__slots__ may contains data member change"
+
             for name in oldnames - newnames:
                 if isinstance(olddict[name], (types.MethodType, types.FunctionType, classmethod, staticmethod)):
                     delattr(oldclass, name)
 
-            for name in oldnames & newnames - {"__dict__", "__doc__"}:
+                elif name in olddict['__slots__']:
+                    raise exceptions.Exception, "__slots__ may contains data member change"
+
+            for name in oldnames & newnames - {"__dict__", "__doc__", "__slots__"}:
                 if isinstance(newdict[name], (types.MethodType, types.FunctionType, classmethod, staticmethod)):
                     setattr(oldclass, name, _update(olddict[name], newdict[name]))
 
+            setattr(oldclass, '__slots__', newdict['__slots__'])
             return oldclass
 
         else:

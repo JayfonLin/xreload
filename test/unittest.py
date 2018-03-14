@@ -278,7 +278,7 @@ def test_pyc():
     op = scripts.new_style_class.Operate(1, 1)
 
 
-def skip_test_derived_class():
+def test_derived_class():
 
     origin_file = """
 class A(object):
@@ -383,8 +383,10 @@ class A(object):
 
     ReplaceScripts(file_name, new_file)
 
-    with pytest.raises(Exception, match=r'__slots__.*before.*after modified'):
+    with pytest.raises(Exception) as excinfo:
         xreload.xreload(scripts.after_slot_class.__name__)
+
+    assert excinfo.match(r"__slots__.*before.*after modified")
 
 def test_before_slot_class():
     origin_file = """
@@ -413,8 +415,39 @@ class A(object):
 
     ReplaceScripts(file_name, new_file)
 
-    with pytest.raises(Exception, match=r'__slots__.*before.*after modified'):
-        xreload.xreload(scripts.before_slot_class.__name__)
+    with pytest.raises(Exception) as excinfo:
+        xreload.xreload(scripts.after_slot_class.__name__)
+
+    assert excinfo.match(r"__slots__.*before.*after modified")
+
+def test_slots_data_member_change():
+    origin_file = """
+class A(object):
+    __slots__ = ["m_member1", "m_member2"]
+    def __init__(self):
+        self.m_member1 = None
+        self.m_member2 = None
+    """
+
+    new_file = """
+class A(object):
+    __slots__ = ["m_member1", "m_member3"]
+    def __init__(self):
+        self.m_member1 = None
+        self.m_member3 = None
+    """
+
+    file_name = "scripts/slots_data_member_change.py"
+    ReplaceScripts(file_name, origin_file)
+    import scripts.slots_data_member_change
+
+    ReplaceScripts(file_name, new_file)
+
+    with pytest.raises(Exception) as excinfo:
+        xreload.xreload(scripts.slots_data_member_change.__name__)
+
+    assert "data member" in str(excinfo.value)
+ 
 
 
 def test_slots_update_class():
