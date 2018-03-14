@@ -416,7 +416,7 @@ class A(object):
     ReplaceScripts(file_name, new_file)
 
     with pytest.raises(Exception) as excinfo:
-        xreload.xreload(scripts.after_slot_class.__name__)
+        xreload.xreload(scripts.before_slot_class.__name__)
 
     assert excinfo.match(r"__slots__.*before.*after modified")
 
@@ -453,7 +453,7 @@ class A(object):
 def test_slots_update_class():
     origin_file = """
 class A(object):
-    __slots__ = ["m_member", "Foo", "DeleteMethod"]
+    __slots__ = ["m_member", "Foo", "DeleteMethod", "Static"]
 
     def __init__(self):
         self.m_member = 1
@@ -462,6 +462,10 @@ class A(object):
         return 'before'
 
     def DeleteMethod(self):
+        pass
+
+    @staticmethod
+    def Static():
         pass
     """
 
@@ -503,6 +507,7 @@ class A(object):
     assert isinstance(module.A.__dict__['Bar'], classmethod)
     assert not hasattr(module.A, 'DeleteMethod')
     assert hasattr(module.A, 'm_member')
+    assert not hasattr(module.A, 'Static')
 
 
 
